@@ -15,7 +15,7 @@ plt.style.use("bmh")
 
 class NN:
 
-    def __init__(self):
+    def __init__(self, n_per_in = 90, n_per_out = 30, n_features = 0):
         """
         Initialization
         """
@@ -25,11 +25,11 @@ class NN:
         self.scalar = RobustScaler()
         self.df = None
         # How many periods looking back to learn
-        self.n_per_in = 90
+        self.n_per_in = n_per_in
         # How many periods to predict
-        self.n_per_out = 30
+        self.n_per_out = n_per_out
         # Features
-        self.n_features = 0
+        self.n_features = n_features
         # Instantiating the model
         self.model = Sequential()
 
@@ -39,7 +39,7 @@ class NN:
         :param data: the data frame to process
         """
         # Datetime conversion
-        data['Date'] = pd.to_datetime(data.Date)
+        data['Date'] = pd.to_datetime(data['Date'])
         # Setting the index
         data.set_index('Date', inplace=True)
         # Dropping any NaNs
@@ -156,6 +156,31 @@ class NN:
         for i in range(self.n_per_in, len(self.df) - self.n_per_in, self.n_per_out):
             # Creating rolling intervals to predict off of
             x = self.df[-i - self.n_per_in:-i]
+            # Predicting using rolling intervals
+            y_hat = self.model.predict(np.array(x).reshape(1, self.n_per_in, self.n_features))
+            # Transforming values back to their normal prices
+            y_hat = self.close_scalar.inverse_transform(y_hat)[0]
+            # DF to store the values and append later, frequency uses business days
+            pred_df = pd.DataFrame(y_hat, index=pd.date_range(start=x.index[-1], periods=len(y_hat), freq="B"),
+                                   columns=[x.columns[0]])
+            # Updating the predictions DF
+            predictions.update(pred_df)
+        return predictions
+
+    def validater_at_date(self, date=None):
+        if date==None:
+            date = self.n_per_in
+        elif date<self.n_per_in:
+            raise ValueError
+        """
+        Runs a 'For' loop to iterate through the length of the DF and create predicted values for every stated interval
+        Returns a DF containing the predicted values for the model with the corresponding index values based on a business day frequency
+        """
+        # Creating an empty DF to store the predictions
+        predictions = pd.DataFrame(index=self.df.index, columns=[self.df.columns[0]])
+        for i in range(date, len(self.df) - date, self.n_per_out):
+            # Creating rolling intervals to predict off of
+            x = self.df[-i - date:-i]
             # Predicting using rolling intervals
             y_hat = self.model.predict(np.array(x).reshape(1, self.n_per_in, self.n_features))
             # Transforming values back to their normal prices
