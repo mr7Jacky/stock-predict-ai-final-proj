@@ -1,3 +1,4 @@
+# https://github.com/gustavovargas/stocktradingrl
 import gym
 from gym import spaces
 import numpy as np
@@ -144,3 +145,4 @@ class CustomEnv(gym.Env):
         print(f'\nep {ep} ' + '*' * 21)
         print(f'Profit: {round(profit * 100, 2)}%')
         print(f'Vol profit: {round(vol_profit * 100, 2)}%')
+

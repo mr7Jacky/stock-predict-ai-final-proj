@@ -10,6 +10,9 @@ import random
 import tensorflow as tf
 import gym
 import argparse
+import sys
+
+sys.path.insert(1, '../')
 import stock_env
 
 sns.set()  # just for better images
@@ -23,8 +26,11 @@ def get_data(path, index_col=0, train_pct=0.7):
     :return:
     """
     data = pd.read_csv(path, index_col=index_col, parse_dates=True, header=0)
+    data = data[['Close']]
     data = pd.concat([data, data.pct_change()], axis=1).iloc[1:]
     data.columns = ['prices', 'returns']
+    print(data.head())
+    
     sep = math.floor(len(data) * train_pct)
     train_data = data.iloc[:sep, :]
     test_data = data.iloc[sep:, :]
@@ -136,12 +142,12 @@ if __name__ == '__main__':
     parser.add_argument('-name_file_data', default='AAPL.csv', type=str)
     parser.add_argument('-name_project', default='AXP_batch', type=str)
     parser.add_argument('-env_name', type=str, default='StockEnv-v0')
-    parser.add_argument('-num_episodes', type=int, default=100000)
+    parser.add_argument('-num_episodes', type=int, default=20)
     parser.add_argument('-len_obs', type=int, default=50)
-    parser.add_argument('-len_window', type=int, default=100)
+    parser.add_argument('-len_window', type=int, default=10)
     parser.add_argument('-interval', type=int, default=1000)
     parser.add_argument('-load_model', type=bool, default=False)
-    parser.add_argument('-epoch_to_load', type=int, default=10000)
+    parser.add_argument('-epoch_to_load', type=int, default=2)
     parser.add_argument('-name_model_weights', type=str, default='trading_weights')
     parser.add_argument('-overlap', type=int, default=20)
 
