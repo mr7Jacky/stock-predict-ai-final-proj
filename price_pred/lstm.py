@@ -31,8 +31,8 @@ class NN:
         # Features
         self.n_features = n_features
         # Instantiating the model
-        self.model = Sequential()
-
+        self.model = None
+        
     def preprocess(self, data):
         """
         Preprocess the data
@@ -82,7 +82,7 @@ class NN:
         Plots the loss and accuracy for the training and testing data
         """
         history = results.history
-        plt.figure(figsize=(16, 5))
+        plt.figure(figsize=(8,4))
         plt.plot(history['val_loss'])
         plt.plot(history['loss'])
         plt.legend(['val_loss', 'loss'])
@@ -91,14 +91,14 @@ class NN:
         plt.ylabel('Loss')
         plt.show()
 
-        plt.figure(figsize=(16, 5))
-        plt.plot(history['val_accuracy'])
-        plt.plot(history['accuracy'])
-        plt.legend(['val_accuracy', 'accuracy'])
-        plt.title('Accuracy')
-        plt.xlabel('Epochs')
-        plt.ylabel('Accuracy')
-        plt.show()
+#         plt.figure(figsize=(16, 5))
+#         plt.plot(history['val_accuracy'])
+#         plt.plot(history['accuracy'])
+#         plt.legend(['val_accuracy', 'accuracy'])
+#         plt.title('Accuracy')
+#         plt.xlabel('Epochs')
+#         plt.ylabel('Accuracy')
+#         plt.show()
 
     def layer_maker(self, n_layers, n_nodes, activation, drop=None, d_rate=.5):
         """
@@ -120,6 +120,7 @@ class NN:
         Create neural network
         """
         # Activation
+        self.model = Sequential()
         activation = "tanh"
         # Input layer
         self.model.add(LSTM(90,
@@ -136,6 +137,29 @@ class NN:
         self.model.summary()
         # Compiling the data with selected specifications
         self.model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    
+    def build_nn_2(self):
+        """
+        Create neural network
+        """
+        # Activation
+        self.model = Sequential()
+        activation = "tanh"
+        # Input layer
+        self.model.add(LSTM(90, activation=activation,
+                            return_sequences=True,
+                            input_shape=(self.n_per_in, self.n_features)))
+        # Hidden layers
+        self.model.add(LSTM(60, activation=activation, return_sequences=True))
+        self.model.add(Dropout(0.5))
+        # Final Hidden layer
+        self.model.add(LSTM(30, activation=activation))
+        # Output layer
+        self.model.add(Dense(self.n_per_out))
+        # Model summary
+        self.model.summary()
+        # Compiling the data with selected specifications
+        self.model.compile(optimizer='adam', loss='mse')
 
     def train_nn(self, train_x, train_y):
         """
@@ -222,7 +246,7 @@ class NN:
         # Printing the RMSE
         print("RMSE:", self.val_rmse(actual, predictions))
         # Plotting
-        plt.figure(figsize=(16, 6))
+        plt.figure(figsize=(8, 4))
         # Plotting those predictions
         plt.plot(predictions, label='Predicted')
         # Plotting the actual values
@@ -251,9 +275,8 @@ class NN:
                               index=self.df.Close.tail(pers).index,
                               columns=[self.df.columns[0]]).append(preds.head(1))
         # Printing the predicted prices
-        print(preds)
         # Plotting
-        plt.figure(figsize=(16, 6))
+        plt.figure(figsize=(8, 4))
         plt.plot(actual, label="Actual Prices")
         plt.plot(preds, label="Predicted Prices")
         plt.ylabel("Price")
@@ -267,12 +290,12 @@ class NN:
 # import os, sys
 # sys.path.append("../stock_env/")
 # from account import Account
-# acc = Account("../stock_env/stock_info/")
-nn = NN()
-df = pd.read_csv("AAPL.csv")
-nn.preprocess(df)
-# Splitting the data into appropriate sequences
-x, y = nn.split_sequence(nn.df.to_numpy())
-res = nn.build_nn(x, y)
-nn.prediction_vs_actual()
-nn.forecast_future()
+# # acc = Account("../stock_env/stock_info/")
+# nn = NN()
+# df = pd.read_csv("AAPL.csv")
+# nn.preprocess(df)
+# # Splitting the data into appropriate sequences
+# x, y = nn.split_sequence(nn.df.to_numpy())
+# res = nn.build_nn(x, y)
+# nn.prediction_vs_actual()
+# nn.forecast_future()
