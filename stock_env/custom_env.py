@@ -10,7 +10,7 @@ class CustomEnv(gym.Env):
     (github.com/notadamking/Stock-Trading-Environment) for OpenAI gym
     """
 
-    def __init__(self, train_data, eval_data, len_obs=20, len_window=100, init_balance=1000):
+    def __init__(self, train_data, eval_data, len_obs=20, len_window=100, init_balance=1000, action_list=(-0.30, -0.20, 0, 0.20, 0.30)):
         super(CustomEnv, self).__init__()
         # changing the train_data to prediction make by nn
         self.train_data = train_data
@@ -19,15 +19,15 @@ class CustomEnv(gym.Env):
 
         self.len_obs = len_obs
         self.len_window = len_window
-        self.action_list = (-0.30, -0.20, 0, 0.20, 0.30)
-        self.action_space = spaces.Discrete(len(self.action_list))  # (-20%, -10%, 0, 10%, 20%), (% amount to buy if positive)
+        self.action_list = action_list
+        self.action_space = spaces.Discrete(len(self.action_list))  
         self.observation_space = spaces.Box(-5000, 5000, shape=(self.len_obs, 1), dtype=np.float32)
         self.profits_rec = []
         self.list_nw = []
 
     def reset(self, train_data=True, batch_size=1, overlap=20):
         # Reset the state of the environment to an initial state
-        self.batch_size= batch_size
+        self.batch_size = batch_size
         self.balance = [self.init_balance for i in range(batch_size)]
         self.net_worth = [self.init_balance for i in range(batch_size)]
         self.shares_held = [0 for i in range(batch_size)]
@@ -132,12 +132,9 @@ class CustomEnv(gym.Env):
 
     def render(self, ep, close=False):
         profit = (self.net_worth - self.init_balance) / self.init_balance
-        profit = np.mean(profit)
+        mean_profit = np.mean(profit)
         vol_profit = np.std(profit)
-        self.profits_rec.append(profit*100)
-        if ep % 1 == 0:
-            # Render the environment to the screen
-            print(f'\nep {ep} ')
-            print(f'Profit: {np.mean(np.array(self.profits_rec))}%')
-            print(f'Net worth: {self.net_worth}')
-            self.profits_rec = []
+        # Render the environment to the screen
+        print(f'\nep {ep} ')
+        print(f'Profit: {mean_profit * 100}%')
+        print(f'Std: {vol_profit}')

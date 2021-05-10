@@ -51,13 +51,13 @@ def get_performance(env, agent, train_data=True, training=False, batch_size=1, o
 
 def check_directories(name_project: str, len_obs:str, len_window:str):
     name_project = f'{name_project}_obs{len_obs}_window{len_window}'
-    directories = [f'projects/{name_project}/{dir}/' for dir in ['saved_models', 'imgs', 'statistics']]
+    directories = [f'projects/{name_project}' for dir in ['saved_models', 'statistics']]
     for dir in directories:
         if not os.path.exists(dir):
             os.makedirs(dir)
     return directories
 
-def plot_stocks_trading_performance(data, save_name, color='royalblue', alpha=0.5, s=12, acc_title=''):
+def plot_stocks_trading_performance(data, color='royalblue', alpha=0.5, s=12, acc_title=''):
     plt.scatter(data[:, 2] * 100, data[:, 1] * 100, alpha=alpha, s=s, color=color)
     plt.xlabel('Volatility')
     plt.ylabel('CAGR')
@@ -67,7 +67,6 @@ def plot_stocks_trading_performance(data, save_name, color='royalblue', alpha=0.
     plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
     plt.gca().xaxis.set_major_formatter(mtick.PercentFormatter())
     plt.tight_layout()
-    plt.savefig(save_name)
     plt.close()
     plt.cla()
     plt.clf()
