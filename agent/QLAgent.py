@@ -35,9 +35,8 @@ class QNAgent:
         self.epsilon = epsilon
         self.discount_rate = discount_rate
         self.learning_rate = learning_rate
-        self.optimizer = tf.optimizers.Adam(self.learning_rate)
-        self.model = QNetwork(self.state_size, self.action_size, self.learning_rate)#
-#         self.model = QLN(self.state_size, self.action_size, self.learning_rate)
+        self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
+        self.model = QNetwork(self.state_size, self.action_size, self.learning_rate)
 
     def get_action(self, state, use_random=True):
         """Select action based on the q value corresponding to a given state. Best
@@ -54,8 +53,7 @@ class QNAgent:
     def train(self, experience: tuple):
         state, action, next_state, reward, done = (exp for exp in experience)
         q_next = self.model.q_state(self.model.q_second(self.model.q_first(state)))
-        q_target = reward + self.discount_rate * np.max(q_next, axis=1)
-        huber = tf.keras.losses.Huber()
+        q_target = self.learning_rate * (reward + self.discount_rate * np.max(q_next, axis=1))
         with tf.GradientTape() as tape:
             q_action = self.model([state, action, q_target])
             #loss = tf.reduce_sum(input_tensor=tf.square(q_target - q_action))

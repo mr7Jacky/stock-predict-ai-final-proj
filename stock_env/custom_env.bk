@@ -91,15 +91,25 @@ class CustomEnv(gym.Env):
     
     def _take_action(self, actions):
         current_price = self.prices[:, self.posit_window+self.len_obs]
-        mid = len(self.action_list) // 2
+
         for idx, act in enumerate(actions):
-            if act > mid:
+            if act == 4:
                 # Buy 40% of balance in shares
                 self.buy(current_price, idx, self.action_list[act])
-            elif act == mid:
+
+            elif act == 3:
+                # Buy 10% of balance in shares
+                self.buy(current_price, idx, self.action_list[act])
+
+            elif act == 2:
                 pass
-            elif act < mid:
+
+            elif act == 1:
                 # Sell 10 % of shared held
+                self.sell(current_price, idx, np.abs(self.action_list[act]))
+
+            elif act == 0:
+                # Sell 40 % of shared held
                 self.sell(current_price, idx, np.abs(self.action_list[act]))
 
         self.net_worth = self.balance + (self.shares_held * current_price)
