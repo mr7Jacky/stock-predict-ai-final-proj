@@ -37,7 +37,6 @@ class CustomEnv(gym.Env):
         self.list_nw = np.array([])
 
         # Set the current step to a random point within the dataframe
-
         if train_data:
             idx = np.random.randint(self.len_obs, len(self.train_data)-self.len_window, (batch_size,))
             self.prices = np.array([self.train_data[i-self.len_obs:i+self.len_window, 0] for i in idx])

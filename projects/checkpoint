@@ -1,0 +1,2 @@
+model_checkpoint_path: "AAPL_batch_obs60_window100"
+all_model_checkpoint_paths: "AAPL_batch_obs60_window100"

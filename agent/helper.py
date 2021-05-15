@@ -1,29 +1,29 @@
+# Third-party library
 import gym
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import seaborn as sns
+sns.set()  # for better images
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-
+# Build-in library
 import os
 import argparse
-
+# Custom library
 import sys
 sys.path.insert(1, '../')
 import stock_env
-
 from QLAgent import QNAgent                                                                
-
-sns.set()  # just for better images
 
 
 def get_data(path, index_col=0, train_pct=0.7):
     """
-    :param train_pct:
-    :param index_col:
-    :param path:
-    :return:
+    This function read data set from given path
+    :param train_pct: percentage of training data in terms of total number of data
+    :param index_col: index of the column
+    :param path: path to a file
+    :return: training data and testing data
     """
     data = pd.read_csv(path, index_col=index_col, parse_dates=True, header=0)
     data = data[['Close']]
@@ -37,19 +37,37 @@ def get_data(path, index_col=0, train_pct=0.7):
 
 
 def get_performance(env, agent, train_data=True, training=False, batch_size=1, overlap=20):
+    """
+    Perform the training and get feedback
+    :param env: environment for agent to perform
+    :param agent: stock trading agent
+    :param train_data: whether using the training data
+    :param training: whether to train the model
+    :param batch_size: size of batch
+    :param overlap: overlapping of data
+    :return: training data and testing data
+    """
     state = env.reset(train_data=train_data, batch_size=batch_size, overlap=overlap)
     done = False
+    loss = []
     while not done:
         action = agent.get_action(state, use_random=True)
         next_state, reward, done, info = env.step(action)
         if training:
-            agent.train((state, action, next_state, reward, done))
+            loss.append(agent.train((state, action, next_state, reward, done)))
         state = next_state
     cagr, vol = env.result()
-    return cagr, vol
+    return cagr, vol, loss
 
 
 def check_directories(name_project: str, len_obs:str, len_window:str):
+    """
+    Make the directory for saved models and performance
+    :param name_project: name of the project
+    :param len_obs: key feature in training for naming
+    :param len_window: key feature in training for naming
+    :return: a list of directory names.
+    """
     name_project = f'{name_project}_obs{len_obs}_window{len_window}'
     directories = [f'projects/{name_project}' for dir in ['saved_models', 'statistics']]
     for dir in directories:
@@ -58,6 +76,14 @@ def check_directories(name_project: str, len_obs:str, len_window:str):
     return directories
 
 def plot_stocks_trading_performance(data, color='royalblue', alpha=0.5, s=12, acc_title=''):
+    """
+    Function to plot Volatility vs CAGR
+    :param data: data to plot
+    :param color: plot color
+    :param alpha: transparency of plotting
+    :param s: the marker size in points
+    :param acc_title: title for plot
+    """
     plt.scatter(data[:, 2] * 100, data[:, 1] * 100, alpha=alpha, s=s, color=color)
     plt.xlabel('Volatility')
     plt.ylabel('CAGR')
@@ -73,6 +99,9 @@ def plot_stocks_trading_performance(data, color='royalblue', alpha=0.5, s=12, ac
 
 
 if __name__ == '__main__':
+    """
+    Run from command line
+    """
     parser = argparse.ArgumentParser(description='Stock Trading with Q Learning')
     parser.add_argument('-name_file_data', default='AAPL.csv', type=str)
     parser.add_argument('-name_project', default='AXP_batch', type=str)
