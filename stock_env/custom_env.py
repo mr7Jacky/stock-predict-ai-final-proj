@@ -72,7 +72,7 @@ class CustomEnv(gym.Env):
         shares_bought = math.floor(total_possible * percentage)
         prev_cost = self.cost_basis[idx] * self.shares_held[idx]
         additional_cost = shares_bought * current_price[idx]
-
+        
         self.balance[idx] -= additional_cost
         self.cost_basis[idx] = (prev_cost + additional_cost)/(self.shares_held[idx] + shares_bought + 1)
         self.shares_held[idx] += shares_bought
@@ -89,7 +89,8 @@ class CustomEnv(gym.Env):
         self.total_sales_value[idx] += shares_sold * current_price[idx]
     
     def _take_action(self, actions):
-        current_price = self.prices[:, self.posit_window+self.len_obs]
+        current_price = self.prices[:, self.posit_window+self.len_obs-1]
+        
         mid = len(self.action_list) // 2
         for idx, act in enumerate(actions):
             if act > mid:
@@ -100,7 +101,6 @@ class CustomEnv(gym.Env):
             elif act < mid:
                 # Sell 10 % of shared held
                 self.sell(current_price, idx, np.abs(self.action_list[act]))
-
         self.net_worth = self.balance + (self.shares_held * current_price)
         if self.posit_window == 0:
             self.list_nw = np.array(self.net_worth).reshape(-1, 1)

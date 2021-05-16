@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.preprocessing import RobustScaler
 import ta
 
+import math
 import pickle
 import argparse
 from datetime import timedelta
@@ -22,6 +23,75 @@ from nn import NN
 import stock_env
 from QLAgent import QNAgent
 from helper import *
+
+
+def exe_q_l(args):
+    pred_res = args.oname + '_pred.csv'
+    env_name = 'StockEnv-v0'
+    
+    # Parameters
+    init_balance = 1000 # initial fund agent have
+    len_obs = 70 # observation length, number of days the agent look back
+    a = [i/10 for i in range(-4,5,1)]
+    action_list=tuple(a)
+    
+    # Data Handler
+    hist_data = pd.read_csv(args.path, index_col=0, parse_dates=True, header=0)
+    hist_data = hist_data.tail(len_obs+1)
+    hist_data = hist_data[['Close']]
+    pred_data = pd.read_csv(pred_res, index_col=0, parse_dates=True, header=0)
+    data = pd.concat([hist_data, pred_data])
+    data = pd.concat([data, data.pct_change()], axis=1).iloc[1:]
+    data.columns = ['prices', 'returns']
+    
+    print(f'Action space: {action_list}')
+    # Simulation
+    agent = load_ql_agent()
+    worth = []
+    idx = np.arange(0,len(pred_data),1)
+    prices = np.array([data.values[i:i+len_obs, 0] for i in idx])
+    returns = np.array([data.values[i:i+len_obs, 1] for i in idx])
+    balance = init_balance
+    shares_held = 0
+    for i in range(len(returns)):
+        state = returns[i].reshape(1,returns.shape[1])
+        act = agent.get_action(state, use_random=False)[0]
+        current_price = prices[i][-1]
+        mid = len(action_list) // 2
+        if act > mid:
+            # Buy 
+            percentage = action_list[act]
+            shares_bought = math.floor((balance / current_price) * percentage)
+            balance -= shares_bought * current_price
+            shares_held += shares_bought
+        elif act == mid:
+            pass
+        elif act < mid:
+            # Sell
+            percentage = np.abs(action_list[act])
+            try:
+                shares_sold = math.floor(shares_held * percentage)
+            except:
+                print(shares_held)
+            balance += shares_sold * current_price
+            shares_held -= shares_sold 
+        net_worth = balance + (shares_held * current_price)
+        worth.append(net_worth)
+                
+    plt.figure(figsize=(8,4))
+    plt.plot(worth,'.-')
+    plt.savefig(args.oname + '_reward.png', dpi=300)
+
+def load_ql_agent():
+    # Obtain parameter
+    param = pickle.load(open('pretrained_models/qlearn/param', 'rb'))
+    # Initialize Agent
+    a = QNAgent(param[0], param[1])
+    # Set parameter
+    a.set_param(param)
+    # Load model weight
+    a.model.load_weights('pretrained_models/qlearn/model')
+    return a
 
 def load_pretrained(model):
     # Load param
@@ -128,106 +198,6 @@ def exe_new(args, df):
     predict(df, nn.n_per_in, nn.n_per_out, nn.n_features, nn.model, nn.close_scalar, args.oname)
     if args.save_model == 1:
         nn.model.save(args.oname)
-        
-def exe_q_l(args):
-    name_file_data = args.path
-    env_name = 'StockEnv-v0'
 
-    num_episodes = 1 # training epoches
-    render_p = 10 # print frequency
-    init_balance = 1000 # initial fund agent have
-
-    len_obs = 70 # observation length, number of days the agent look back
-    len_window = 100 # num of times trained each time
-    interval = 1 # interval of validation
-    overlap = 20 # overlapping between two consecutive training data 
-    batch_size = 1000 
-    a = [i/10 for i in range(-4,5,1)]
-    print(tuple(a))
-    action_list=tuple(a)
-    seed = 40
-    
-    train_data, test_data = get_data(f'../data/{name_file_data}')
-    
-    # Create an instant
-    env = gym.make(env_name, train_data=train_data, eval_data=test_data, 
-                   len_obs=len_obs, len_window=len_window, init_balance=init_balance,
-                   action_list=action_list)
-    env.seed(seed)
-    print(f'Observation space: {env.observation_space}')
-    print(f'Action space: {env.action_space}')
-    # Create an agent
-    agent = QNAgent(env.action_space.n, env.observation_space.shape, 
-                    discount_rate=0.5, learning_rate=0.01, epsilon=0.01)
-    init_ep = 0
-    train_statistics = pd.DataFrame()
-    test_statistics = pd.DataFrame()
-    worth = []
-    losses = []
-    
-    for ep in range(init_ep, num_episodes):
-        _, _, loss = get_performance(env, agent, train_data=True, training=True, batch_size=batch_size)
-        if (ep % render_p) == 0:
-            env.render(ep)
-        worth.append(env.net_worth)
-        losses = np.concatenate((losses,loss))
-        if ep % interval == 0:
-            overlap = overlap
-            results_train = np.empty(shape=(0, 3))
-            results_test = np.empty(shape=(0, 3))
-
-            size_test = ((len(env.eval_data)-env.len_obs-env.len_window) // overlap)+1
-            cagr_train, vol_train, _ = get_performance(env, agent, train_data=True, training=False, batch_size=size_test)
-            results_train = np.array([np.tile(ep, size_test), cagr_train, vol_train]).transpose()
-
-            cagr_test, vol_test, _ = get_performance(env, agent, train_data=False, training=False, overlap=overlap, batch_size=size_test)
-            results_test = np.array([np.tile(ep, size_test), cagr_test, vol_test]).transpose()
-
-            train_statistics = pd.concat([train_statistics, pd.DataFrame(results_train, columns=['epoch', 'cagr','volatility'])])
-            test_statistics = pd.concat([test_statistics, pd.DataFrame(results_test, columns=['epoch', 'cagr','volatility'])])
-    
-    precision = num_episodes
-    threshold = 5000
-    worth_mean = np.mean(worth,axis=-1)
-    k = np.split(worth_mean, precision)
-    k = np.mean(k, axis = -1)
-    #k = [len(np.where(i > threshold)[0]) for i in worth]
-    plt.figure(figsize=(8,4))
-    plt.plot(k,'.-')
-    plt.savefig(oname + '_reward.png', dpi=300)
-
-def load_ql_agent(filename):
-    # Obtain parameter
-    param = pickle.load(open(filename + '/param', 'rb'))
-    # Initialize Agent
-    a = QNAgent(param[0], param[1])
-    # Set parameter
-    a.set_param(param)
-    # Load model weight
-    a.model.load_weights(filename+'/model')
-    return a
-
-
-if __name__ == '__main__':
-    # Obtain argments from command line
-    parser = argparse.ArgumentParser(description='Stock Prediction')
-    parser.add_argument('-path', default='./data/AAPL.csv', type=str)
-    parser.add_argument('-model', type=str, default='lstm')
-    parser.add_argument('-load', type=int, default=1)
-    parser.add_argument('-oname', type=str, default='result')
-    parser.add_argument('-save_model', type=int, default=0)
-
-    args = parser.parse_args()
-
-    data = pd.read_csv(args.path, date_parser=True)
-    if args.load == 1:
-        exe_load(args, data)
-    else:
-        exe_new(args, data)
-    
-    # agent = load_ql_agent('ql_model')
-    # print(agent.state_size)
-    # state = np.zeros(agent.state_size) # shape = (1,n)
-    # print(agent.get_action(np.transpose(state)))
     
     
