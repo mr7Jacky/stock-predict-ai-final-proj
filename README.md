@@ -68,4 +68,5 @@ matplotlib >= 3.3.1
 ## Reference
 
 1. [Yahoo Finance](https://finance.yahoo.com/)
-2. []
+2. [Github Repo - stocktradingrl](https://github.com/gustavovargas/stocktradingrl)
+3. [Stock prediction nn article](https://link.springer.com/article/10.1007/s13042-019-01041-1#:~:text=Currently%2C%20there%20are%20many%20methods%20for%20stock%20price%20prediction.&text=The%20experiments%20show%20that%20the,prediction%20accuracy%20is%20over%2095%25)
