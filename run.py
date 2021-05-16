@@ -225,9 +225,9 @@ if __name__ == '__main__':
     else:
         exe_new(args, data)
     
-    agent = load_ql_agent('ql_model')
-    print(agent.state_size)
-    state = np.zeros(agent.state_size) # shape = (1,n)
-    print(agent.get_action(np.transpose(state)))
+    # agent = load_ql_agent('ql_model')
+    # print(agent.state_size)
+    # state = np.zeros(agent.state_size) # shape = (1,n)
+    # print(agent.get_action(np.transpose(state)))
     
     
