@@ -1,0 +1,6 @@
+gym >= 0.18.0
+numpy >= 1.19.1
+pandas >= 1.1.4
+tensorflow >= 2.3.0
+seaborn >= 0.10.1
+Matplotlib >= 3.3.1
