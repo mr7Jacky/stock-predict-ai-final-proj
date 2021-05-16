@@ -21,18 +21,19 @@ class QNAgent:
     """
     Agent that decide which action to do, using q-learning model
     """
-    def __init__(self, env, discount_rate=0.5, learning_rate=0.01, epsilon = 0.5):
+    def __init__(self, action_size, state_size, discount_rate=0.5, learning_rate=0.01, epsilon = 0.5):
         """
         Initialization of agent:
             using a multiple layer neural network to represent q-table
             using q-learning method to train
-        :param env: the environment where agent performs
+        :param action_size: size of action
+        :param state_size: shape of state
         :param discount_rate: gamma value for q learning equation
         :param learning_rate: alpha value for q learning equation
         :param epsilon: probability of taking a random action
         """
-        self.action_size = env.action_space.n
-        self.state_size = env.observation_space.shape
+        self.action_size = action_size
+        self.state_size = state_size
         self.epsilon = epsilon
         self.discount_rate = discount_rate
         self.learning_rate = learning_rate
@@ -78,9 +79,12 @@ class QNAgent:
         self.optimizer.apply_gradients(zip(gradients, variables))
         return np.mean(loss)
     
-    def load(self, path: str):
+    def set_param(self, param):
         """
-        Load the weight from file. This function is used when try to use pretrain weight
+        Load the param from file. This function is used when try to use pretrain weight
         :param path: the path to weight file for agent
         """
-        self.model.load_weights(path)
+        self.epsilon = param[2]
+        self.discount_rate = param[3]
+        self.learning_rate = param[4]
+        self.optimizer = param[5]

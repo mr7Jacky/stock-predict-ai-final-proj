@@ -5,7 +5,7 @@ def prediction()
     Returns a DF containing the predicted values for the model with the corresponding index values based on a business day frequency
     """
     # Load model from pretrain model
-    
+    model = keras.models.load_model('pretrained_models/pred_lstm')
     # Process the data
     
     # Creating an empty DF to store the predictions

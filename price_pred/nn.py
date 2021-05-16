@@ -12,7 +12,6 @@ from keras.layers import LSTM, Dense, Dropout
 
 plt.style.use("bmh")
 
-
 class NN:
 
     def __init__(self, n_per_in = 90, n_per_out = 30, n_features = 0):
