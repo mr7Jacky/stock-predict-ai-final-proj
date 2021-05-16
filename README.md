@@ -16,18 +16,18 @@ For long, researchers have been interested in finding ways for AI to predict sto
 
 The project can be broken down into 2 generic parts: stock prediction with Neural Network (LSTM), and an agent designed to operate on a simulated stock market (currently only 1 stock) to achieve max profit.
 
-![uml](sample_out/UML.jpg)
+![uml](example_out/UML.jpg)
 
 If you are interested in our source code, 3 folders that are worth looking into are : 
 1. [price_pred/](price_pred/), which focuses on using neural network to predict future prices. Especially the [nn.py](price_pred/nn.py), which contains the most important class that deals with price prediction NN. Here’s a graph of its result:
 
-![uml](sample_out/result_pred.png)
+![uml](example_out/result_pred.png)
 
 2. [stock_env/](stock_env/), which is mainly for creating a stock market environment for the q-learning agent. Especially the [custom_env.py](stock_env/custom_env.py), which defines a stock trading environment that works with the gym api.
 
 3. [agent/](agent/), which deals with creating a q-learning agent to operate on the existing environment and try to achieve max profit. Especially the [QLAgent.py](agent/QLAgent.py), which is the main class that use the gym api to utilize reinforcement learning for operating and profiting in the designed stock environment. Here’s a graph of the result achieved by the agent.
 
-![uml](sample_out/result_reward.png)
+![uml](example_out/result_reward.png)
 
 Other folders includes:
 
