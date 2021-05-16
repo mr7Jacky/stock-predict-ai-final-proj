@@ -1,6 +1,10 @@
 from run_handler import *
+import sys
 
 if __name__ == '__main__':
+    if not sys.warnoptions:
+        import warnings
+        warnings.simplefilter("ignore")
     # Obtain argments from command line
     parser = argparse.ArgumentParser(description='Stock Prediction')
     parser.add_argument('-path', default='./data/AAPL.csv', type=str)
