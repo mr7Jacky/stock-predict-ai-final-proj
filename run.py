@@ -1,17 +1,27 @@
-import pickle
+import gym
+import keras 
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
-from datetime import timedelta
 import ta
-import keras 
-import argparse
 
+import pickle
+import argparse
+from datetime import timedelta
+import os
 import sys
 sys.path.insert(1, './price_pred')
+sys.path.insert(1, './agent')
+
 from nn import NN
+import stock_env
+from QLAgent import QNAgent
+from helper import *
 
 def load_pretrained(model):
     # Load param
@@ -116,8 +126,86 @@ def exe_new(args, df):
     result = nn.model.fit(x, y, epochs=50, batch_size=128, validation_split=0.1, verbose=1)
     visualize_training_results(result, args.oname)
     predict(df, nn.n_per_in, nn.n_per_out, nn.n_features, nn.model, nn.close_scalar, args.oname)
-    nn.model.save(args.oname)
+    if args.save_model == 1:
+        nn.model.save(args.oname)
+        
+def exe_q_l(args):
+    name_file_data = args.path
+    env_name = 'StockEnv-v0'
+
+    num_episodes = 1 # training epoches
+    render_p = 10 # print frequency
+    init_balance = 1000 # initial fund agent have
+
+    len_obs = 70 # observation length, number of days the agent look back
+    len_window = 100 # num of times trained each time
+    interval = 1 # interval of validation
+    overlap = 20 # overlapping between two consecutive training data 
+    batch_size = 1000 
+    a = [i/10 for i in range(-4,5,1)]
+    print(tuple(a))
+    action_list=tuple(a)
+    seed = 40
     
+    train_data, test_data = get_data(f'../data/{name_file_data}')
+    
+    # Create an instant
+    env = gym.make(env_name, train_data=train_data, eval_data=test_data, 
+                   len_obs=len_obs, len_window=len_window, init_balance=init_balance,
+                   action_list=action_list)
+    env.seed(seed)
+    print(f'Observation space: {env.observation_space}')
+    print(f'Action space: {env.action_space}')
+    # Create an agent
+    agent = QNAgent(env.action_space.n, env.observation_space.shape, 
+                    discount_rate=0.5, learning_rate=0.01, epsilon=0.01)
+    init_ep = 0
+    train_statistics = pd.DataFrame()
+    test_statistics = pd.DataFrame()
+    worth = []
+    losses = []
+    
+    for ep in range(init_ep, num_episodes):
+        _, _, loss = get_performance(env, agent, train_data=True, training=True, batch_size=batch_size)
+        if (ep % render_p) == 0:
+            env.render(ep)
+        worth.append(env.net_worth)
+        losses = np.concatenate((losses,loss))
+        if ep % interval == 0:
+            overlap = overlap
+            results_train = np.empty(shape=(0, 3))
+            results_test = np.empty(shape=(0, 3))
+
+            size_test = ((len(env.eval_data)-env.len_obs-env.len_window) // overlap)+1
+            cagr_train, vol_train, _ = get_performance(env, agent, train_data=True, training=False, batch_size=size_test)
+            results_train = np.array([np.tile(ep, size_test), cagr_train, vol_train]).transpose()
+
+            cagr_test, vol_test, _ = get_performance(env, agent, train_data=False, training=False, overlap=overlap, batch_size=size_test)
+            results_test = np.array([np.tile(ep, size_test), cagr_test, vol_test]).transpose()
+
+            train_statistics = pd.concat([train_statistics, pd.DataFrame(results_train, columns=['epoch', 'cagr','volatility'])])
+            test_statistics = pd.concat([test_statistics, pd.DataFrame(results_test, columns=['epoch', 'cagr','volatility'])])
+    
+    precision = num_episodes
+    threshold = 5000
+    worth_mean = np.mean(worth,axis=-1)
+    k = np.split(worth_mean, precision)
+    k = np.mean(k, axis = -1)
+    #k = [len(np.where(i > threshold)[0]) for i in worth]
+    plt.figure(figsize=(8,4))
+    plt.plot(k,'.-')
+    plt.savefig(oname + '_reward.png', dpi=300)
+
+def load_ql_agent(filename):
+    # Obtain parameter
+    param = pickle.load(open(filename + '/param', 'rb'))
+    # Initialize Agent
+    a = QNAgent(param[0], param[1])
+    # Set parameter
+    a.set_param(param)
+    # Load model weight
+    a.model.load_weights(filename+'/model')
+    return a
 
 
 if __name__ == '__main__':
@@ -136,5 +224,10 @@ if __name__ == '__main__':
         exe_load(args, data)
     else:
         exe_new(args, data)
+    
+    agent = load_ql_agent('ql_model')
+    print(agent.state_size)
+    state = np.zeros(agent.state_size) # shape = (1,n)
+    print(agent.get_action(np.transpose(state)))
     
     
