@@ -26,6 +26,12 @@ from helper import *
 
 
 def exe_q_l(args):
+    """
+    execute the q-learning agent by given arguments:
+        loads existing agent
+        plot the result and save the image
+    :param args: option arguments specified by user
+    """
     pred_res = args.oname + '_pred.csv'
     env_name = 'StockEnv-v0'
     
@@ -83,6 +89,11 @@ def exe_q_l(args):
     plt.savefig(args.oname + '_reward.png', dpi=300)
 
 def load_ql_agent():
+    """
+    load the q-learning agent model from existing files:
+        Load nn parameters and weights
+    :return: the loaded agent
+    """
     # Obtain parameter
     param = pickle.load(open('pretrained_models/qlearn/param', 'rb'))
     # Initialize Agent
@@ -94,6 +105,11 @@ def load_ql_agent():
     return a
 
 def load_pretrained(model):
+    """
+    Load the saved prediction NN:
+        Load nn parameters and weights
+    :param model: type of NN model
+    """
     # Load param
     param = pickle.load(open('pretrained_models/pred/param', 'rb'))
     # Load model from pretrain model
@@ -106,6 +122,12 @@ def load_pretrained(model):
     return param, model
 
 def preprocess(data):
+    """
+    preprocess the data:
+        convert date data into datetime and make it index
+        drop the NaN values and unneeded values
+    :param data: the data read by pandas
+    """
     # Preprocess
     close_scaler = RobustScaler()
     scaler = RobustScaler()
@@ -128,6 +150,17 @@ def preprocess(data):
     return data, close_scaler, scaler
 
 def predict(df, n_per_in, n_per_out, n_features, model, close_scaler, oname):
+    """
+    predict future prices according to past dates:
+        save the predicted results
+    :param df: dataframe to predic off of
+    :param n_per_in: number of days of past price information for input
+    :param n_per_out: number of days of output predicted prices
+    :param n_features: number of features for the neural network
+    :param model: the NN prediction model to be used
+    :param close_scaler: the close_scaler object for utility
+    :param oname: name heading for the saved files
+    """
     # Predicting off of the most recent days from the original DF
     y_hat = model.predict(np.array(df.tail(n_per_in)).reshape(1, n_per_in, n_features))
     # Transforming the predicted values back to their original format
@@ -156,7 +189,10 @@ def predict(df, n_per_in, n_per_out, n_features, model, close_scaler, oname):
 
 def visualize_training_results(results, oname):
     """
-    Plots the loss and accuracy for the training and testing data
+    Plots the loss and accuracy for the training and testing data:
+        save resulted figures
+    :param results: results of prediction
+    :param oname: name heading for the saved files
     """
     history = results.history
     plt.figure(figsize=(8,4))
@@ -169,7 +205,10 @@ def visualize_training_results(results, oname):
     plt.savefig(oname + '_train.png', dpi=300)
     
 def exe_load(args, df):
-    """ Use a pretrained model
+    """ 
+    When the user chose to use a pretrained model:
+    :param args: option arguments specified by user
+    :param df: the dataframe to use
     """
     param, model = load_pretrained(args.model)
     df, close_scaler, scaler = preprocess(df)
@@ -179,7 +218,10 @@ def exe_load(args, df):
     
 
 def exe_new(args, df):
-    """ Build a new neural agent
+    """ 
+    When the user chose to build a new neural agent:
+    :param args: option arguments specified by user
+    :param df: the dataframe to use
     """
     nn = NN()
     nn.df, nn.close_scalar, nn.scalar = preprocess(df)
