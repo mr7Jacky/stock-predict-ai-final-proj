@@ -11,7 +11,8 @@ class CustomEnv(gym.Env):
     (github.com/notadamking/Stock-Trading-Environment) for OpenAI gym
     """
 
-    def __init__(self, train_data, eval_data, len_obs=20, len_window=100, init_balance=1000, action_list=(-0.30, -0.20, 0, 0.20, 0.30)):
+    def __init__(self, train_data, eval_data, len_obs=20, len_window=100, init_balance=1000,
+                 action_list=(-0.30, -0.20, 0, 0.20, 0.30)):
         """
         initialize the environment:
             specify details of the environment
@@ -31,7 +32,7 @@ class CustomEnv(gym.Env):
         self.len_obs = len_obs
         self.len_window = len_window
         self.action_list = action_list
-        self.action_space = spaces.Discrete(len(self.action_list))  
+        self.action_space = spaces.Discrete(len(self.action_list))
         self.observation_space = spaces.Box(-5000, 5000, shape=(self.len_obs, 1), dtype=np.float32)
         self.profits_rec = []
         self.list_nw = []
@@ -55,13 +56,13 @@ class CustomEnv(gym.Env):
 
         # Set the current step to a random point within the dataframe
         if train_data:
-            idx = np.random.randint(self.len_obs, len(self.train_data)-self.len_window, (batch_size,))
-            self.prices = np.array([self.train_data[i-self.len_obs:i+self.len_window, 0] for i in idx])
-            self.returns = np.array([self.train_data[i-self.len_obs:i+self.len_window, 1] for i in idx])
+            idx = np.random.randint(self.len_obs, len(self.train_data) - self.len_window, (batch_size,))
+            self.prices = np.array([self.train_data[i - self.len_obs:i + self.len_window, 0] for i in idx])
+            self.returns = np.array([self.train_data[i - self.len_obs:i + self.len_window, 1] for i in idx])
         else:
-            idx = np.arange(self.len_obs, len(self.eval_data)-self.len_window, overlap)
-            self.prices = np.array([self.eval_data[i-self.len_obs:i+self.len_window, 0] for i in idx])
-            self.returns = np.array([self.eval_data[i-self.len_obs:i+self.len_window, 1] for i in idx])
+            idx = np.arange(self.len_obs, len(self.eval_data) - self.len_window, overlap)
+            self.prices = np.array([self.eval_data[i - self.len_obs:i + self.len_window, 0] for i in idx])
+            self.returns = np.array([self.eval_data[i - self.len_obs:i + self.len_window, 1] for i in idx])
         self.posit_window = 0
         return self._next_observation()
 
@@ -83,12 +84,12 @@ class CustomEnv(gym.Env):
         if self.posit_window == 1:
             reward = [0 for i in range(self.batch_size)]
         else:
-            reward = (self.list_nw[:, -1] / self.list_nw[:, -2])-1
+            reward = (self.list_nw[:, -1] / self.list_nw[:, -2]) - 1
         done = (self.posit_window == self.len_window)
         obs = self._next_observation()
 
         return obs, reward, done, {}
-    
+
     def buy(self, current_price, idx, percentage):
         """
         Buy a certain amount of stock holdings
@@ -100,11 +101,11 @@ class CustomEnv(gym.Env):
         shares_bought = math.floor(total_possible * percentage)
         prev_cost = self.cost_basis[idx] * self.shares_held[idx]
         additional_cost = shares_bought * current_price[idx]
-        
+
         self.balance[idx] -= additional_cost
-        self.cost_basis[idx] = (prev_cost + additional_cost)/(self.shares_held[idx] + shares_bought + 1)
+        self.cost_basis[idx] = (prev_cost + additional_cost) / (self.shares_held[idx] + shares_bought + 1)
         self.shares_held[idx] += shares_bought
-        
+
     def sell(self, current_price, idx, percentage):
         """
         Sell a certain amount of stock holdings
@@ -117,18 +118,18 @@ class CustomEnv(gym.Env):
         except:
             print(self.shares_held)
             print(idx)
-        self.balance[idx] += shares_sold * current_price[idx]  
-        self.shares_held[idx] -= shares_sold 
-        self.total_shares_sold[idx] += shares_sold  
+        self.balance[idx] += shares_sold * current_price[idx]
+        self.shares_held[idx] -= shares_sold
+        self.total_shares_sold[idx] += shares_sold
         self.total_sales_value[idx] += shares_sold * current_price[idx]
-    
+
     def _take_action(self, actions):
         """
         take the next action:
         :param actions: potential actions
         """
-        current_price = self.prices[:, self.posit_window+self.len_obs-1]
-        
+        current_price = self.prices[:, self.posit_window + self.len_obs - 1]
+
         mid = len(self.action_list) // 2
         for idx, act in enumerate(actions):
             if act > mid:
@@ -148,8 +149,6 @@ class CustomEnv(gym.Env):
         if self.shares_held == [0 for i in range(len(self.shares_held))]:
             self.cost_basis = [0 for i in range(self.batch_size)]
 
-    
-    
     def result(self, days_per_year=252):
         """
         returns the (annual) result of training:
@@ -160,8 +159,8 @@ class CustomEnv(gym.Env):
         """
         div = self.list_nw[:, -1] / self.list_nw[:, 0]
         exp = (days_per_year / self.len_window)
-        cagr = (div**exp) - 1
-        ann_vol = ((self.list_nw[:, 1:] / self.list_nw[:, :-1]) - 1).std(axis=1) * (days_per_year**0.5)  # !!
+        cagr = (div ** exp) - 1
+        ann_vol = ((self.list_nw[:, 1:] / self.list_nw[:, :-1]) - 1).std(axis=1) * (days_per_year ** 0.5)  # !!
         return cagr, ann_vol
 
     def render(self, ep, close=False):

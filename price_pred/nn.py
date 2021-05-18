@@ -12,11 +12,14 @@ from keras.layers import LSTM, Dense, Dropout
 
 plt.style.use("bmh")
 
+
 class NN:
 
-    def __init__(self, n_per_in = 90, n_per_out = 30, n_features = 0):
+    def __init__(self, n_per_in=90, n_per_out=30):
         """
         Initialization
+        :param n_per_in: Input shape of neural network
+        :param n_per_out: output shape of neural network
         """
         # Scale fitting the close prices separately for inverse_transformations purposes later
         self.close_scalar = RobustScaler()
@@ -27,14 +30,14 @@ class NN:
         self.n_per_in = n_per_in
         # How many periods to predict
         self.n_per_out = n_per_out
-        # Features
-        self.n_features = n_features
+        # Features (This value would be updated in preprocess step)
+        self.n_features = 0
         # Instantiating the model
         self.model = None
-        
+
     def preprocess(self, data):
         """
-        Preprocess the data
+        Preprocess the data and use robust scaler to fit the data
         :param data: the data frame to process
         """
         # Datetime conversion
@@ -59,6 +62,8 @@ class NN:
     def split_sequence(self, seq):
         """
         Splits the multivariate time sequence
+        :param seq: sequence to split
+        :return: two split sequences
         """
         # Creating a list for both variables
         x, y = [], []
@@ -79,9 +84,11 @@ class NN:
     def visualize_training_results(results):
         """
         Plots the loss and accuracy for the training and testing data
+        :param results: the training results to plot
         """
+
         history = results.history
-        plt.figure(figsize=(8,4))
+        plt.figure(figsize=(8, 4))
         plt.plot(history['val_loss'])
         plt.plot(history['loss'])
         plt.legend(['val_loss', 'loss'])
@@ -90,24 +97,9 @@ class NN:
         plt.ylabel('Loss')
         plt.show()
 
-    def layer_maker(self, n_layers, n_nodes, activation, drop=None, d_rate=.5):
-        """
-        Creates a specified number of hidden layers for an RNN
-        Optional: Adds regularization option - the dropout layer to prevent potential over-fitting (if necessary)
-        """
-        # Creating the specified number of hidden layers with the specified number of nodes
-        for x in range(1, n_layers + 1):
-            self.model.add(LSTM(n_nodes, activation=activation, return_sequences=True))
-            # Adds a Dropout layer after every Nth hidden layer (the 'drop' variable)
-            try:
-                if x % drop == 0:
-                    self.model.add(Dropout(d_rate))
-            except:
-                pass
-
     def build_lstm(self):
         """
-        Create neural network
+        Create a simple one-lstm layer for neural network
         """
         # Activation
         self.model = Sequential()
@@ -127,10 +119,10 @@ class NN:
         self.model.summary()
         # Compiling the data with selected specifications
         self.model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-    
+
     def build_drnn(self):
         """
-        Create neural network
+        Create a deep recurrent neural network based on stacked lstm architecture
         """
         # Activation
         self.model = Sequential()
@@ -162,6 +154,8 @@ class NN:
     def train_nn(self, train_x, train_y):
         """
         Train neural network by giving training sets
+        :param train_x: training input values
+        :param train_y: training output targets
         :return: the training result
         """
         # Fitting and Training
@@ -169,14 +163,16 @@ class NN:
         return result
 
     def validater_at_date(self, date=None):
-        if date==None:
-            date = self.n_per_in
-        elif date<self.n_per_in:
-            raise ValueError
         """
         Runs a 'For' loop to iterate through the length of the DF and create predicted values for every stated interval
-        Returns a DF containing the predicted values for the model with the corresponding index values based on a business day frequency
+        :param date: date to predict
+        :return a DF containing the predicted values for the model with the corresponding index values based on a
+                business day frequency
         """
+        if date is None:
+            date = self.n_per_in
+        elif date < self.n_per_in:
+            raise ValueError
         # Creating an empty DF to store the predictions
         predictions = pd.DataFrame(index=self.df.index, columns=[self.df.columns[0]])
         for i in range(date, len(self.df) - date, self.n_per_out):
@@ -197,6 +193,9 @@ class NN:
     def val_rmse(df1, df2):
         """
         Calculates the root mean square error between the two Dataframes
+        :param df1: the first dataframe to compare
+        :param df2: the second dataframe to compare
+        :return: the square root of the root mean square
         """
         df = df1.copy()
         # Adding a new column with the closing prices from the second DF
@@ -212,7 +211,7 @@ class NN:
 
     def prediction_vs_actual(self):
         """
-        Compare the future price and actual price
+        Compare the future price and actual price by plotting the predicted results and actual prices together
         """
         # Transforming the actual values to their original price
         actual = pd.DataFrame(self.close_scalar.inverse_transform(self.df[["Close"]]),
@@ -232,12 +231,12 @@ class NN:
         plt.ylabel("Price")
         plt.legend()
         plt.show()
-    
+
     # Modify to include other dfs
     def validater(self):
         """
         Runs a 'For' loop to iterate through the length of the DF and create predicted values for every stated interval
-        Returns a DF containing the predicted values for the model with the corresponding index values based on a business day frequency
+        :returns a DF containing the predicted values for the model with the corresponding index values based on a business day frequency
         """
         # Creating an empty DF to store the predictions
         predictions = pd.DataFrame(index=self.df.index, columns=[self.df.columns[0]])
@@ -257,7 +256,7 @@ class NN:
 
     def forecast_future(self):
         """
-        Forecast the future prices
+        Forecast the future prices by plotting the predicted results
         """
         # Predicting off of the most recent days from the original DF
         y_hat = self.model.predict(np.array(self.df.tail(self.n_per_in)).reshape(1, self.n_per_in, self.n_features))

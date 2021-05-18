@@ -3,6 +3,7 @@ import numpy as np
 
 from QLNN import QNetwork
 
+
 def huber_loss(y_true, y_pred, max_grad=1.):
     """
     Calculates the huber loss.
@@ -13,15 +14,17 @@ def huber_loss(y_true, y_pred, max_grad=1.):
     """
     err = tf.abs(y_true - y_pred, name='abs')
     mg = tf.constant(max_grad, name='max_grad')
-    lin = mg*(err-.5*mg)
-    quad=.5*err*err
+    lin = mg * (err - .5 * mg)
+    quad = .5 * err * err
     return tf.where(err < mg, quad, lin)
+
 
 class QNAgent:
     """
     Agent that decide which action to do, using q-learning model
     """
-    def __init__(self, action_size, state_size, discount_rate=0.5, learning_rate=0.01, epsilon = 0.5):
+
+    def __init__(self, action_size, state_size, discount_rate=0.5, learning_rate=0.01, epsilon=0.5):
         """
         Initialization of agent:
             using a multiple layer neural network to represent q-table
@@ -56,7 +59,7 @@ class QNAgent:
             return action_random if np.random.uniform() < self.epsilon else action_greedy
         else:
             return action_greedy
-    
+
     def train(self, experience: tuple):
         """
         Training process of agent
@@ -72,17 +75,17 @@ class QNAgent:
         q_target = self.learning_rate * (reward + self.discount_rate * np.max(q_next, axis=1))
         with tf.GradientTape() as tape:
             q_action = self.model([state, action, q_target])
-            #loss = tf.reduce_sum(input_tensor=tf.square(q_target - q_action))
+            # loss = tf.reduce_sum(input_tensor=tf.square(q_target - q_action))
             loss = tf.convert_to_tensor(huber_loss(q_target, q_action))
         variables = self.model.trainable_variables
         gradients = tape.gradient(loss, variables)
         self.optimizer.apply_gradients(zip(gradients, variables))
         return np.mean(loss)
-    
+
     def set_param(self, param):
         """
         Load the param from file. This function is used when try to use pretrain weight
-        :param path: the path to weight file for agent
+        :param param: the path to weight file for agent
         """
         self.epsilon = param[2]
         self.discount_rate = param[3]

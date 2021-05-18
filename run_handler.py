@@ -1,5 +1,5 @@
 import gym
-import keras 
+import keras
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
@@ -16,6 +16,7 @@ import argparse
 from datetime import timedelta
 import os
 import sys
+
 sys.path.insert(1, './price_pred')
 sys.path.insert(1, './agent')
 
@@ -34,33 +35,33 @@ def exe_q_l(args):
     """
     pred_res = args.oname + '_pred.csv'
     env_name = 'StockEnv-v0'
-    
+
     # Parameters
-    init_balance = 1000 # initial fund agent have
-    len_obs = 70 # observation length, number of days the agent look back
-    a = [i/10 for i in range(-4,5,1)]
-    action_list=tuple(a)
-    
+    init_balance = 1000  # initial fund agent have
+    len_obs = 70  # observation length, number of days the agent look back
+    a = [i / 10 for i in range(-4, 5, 1)]
+    action_list = tuple(a)
+
     # Data Handler
     hist_data = pd.read_csv(args.path, index_col=0, parse_dates=True, header=0)
-    hist_data = hist_data.tail(len_obs+1)
+    hist_data = hist_data.tail(len_obs + 1)
     hist_data = hist_data[['Close']]
     pred_data = pd.read_csv(pred_res, index_col=0, parse_dates=True, header=0)
     data = pd.concat([hist_data, pred_data])
     data = pd.concat([data, data.pct_change()], axis=1).iloc[1:]
     data.columns = ['prices', 'returns']
-    
+
     print(f'Action space: {action_list}')
     # Simulation
     agent = load_ql_agent()
     worth = []
-    idx = np.arange(0,len(pred_data),1)
-    prices = np.array([data.values[i:i+len_obs, 0] for i in idx])
-    returns = np.array([data.values[i:i+len_obs, 1] for i in idx])
+    idx = np.arange(0, len(pred_data), 1)
+    prices = np.array([data.values[i:i + len_obs, 0] for i in idx])
+    returns = np.array([data.values[i:i + len_obs, 1] for i in idx])
     balance = init_balance
     shares_held = 0
     for i in range(len(returns)):
-        state = returns[i].reshape(1,returns.shape[1])
+        state = returns[i].reshape(1, returns.shape[1])
         act = agent.get_action(state, use_random=False)[0]
         current_price = prices[i][-1]
         mid = len(action_list) // 2
@@ -80,13 +81,14 @@ def exe_q_l(args):
             except:
                 print(shares_held)
             balance += shares_sold * current_price
-            shares_held -= shares_sold 
+            shares_held -= shares_sold
         net_worth = balance + (shares_held * current_price)
         worth.append(net_worth)
-                
-    plt.figure(figsize=(8,4))
-    plt.plot(worth,'.-')
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(worth, '.-')
     plt.savefig(args.oname + '_reward.png', dpi=300)
+
 
 def load_ql_agent():
     """
@@ -104,6 +106,7 @@ def load_ql_agent():
     a.model.load_weights('pretrained_models/qlearn/model')
     return a
 
+
 def load_pretrained(model):
     """
     Load the saved prediction NN:
@@ -120,6 +123,7 @@ def load_pretrained(model):
     else:
         raise ValueError('Model cannot found.')
     return param, model
+
 
 def preprocess(data):
     """
@@ -149,13 +153,13 @@ def preprocess(data):
     data = pd.DataFrame(scaler.fit_transform(data), columns=data.columns, index=data.index)
     return data, close_scaler, scaler
 
-def predict(df, n_per_in, n_per_out, n_features, model, close_scaler, oname):
+
+def predict(df, n_per_in, n_features, model, close_scaler, oname):
     """
     predict future prices according to past dates:
         save the predicted results
     :param df: dataframe to predic off of
     :param n_per_in: number of days of past price information for input
-    :param n_per_out: number of days of output predicted prices
     :param n_features: number of features for the neural network
     :param model: the NN prediction model to be used
     :param close_scaler: the close_scaler object for utility
@@ -187,6 +191,7 @@ def predict(df, n_per_in, n_per_out, n_features, model, close_scaler, oname):
     plt.savefig(oname + '_pred.png', dpi=300)
     preds.to_csv(oname + '_pred.csv')
 
+
 def visualize_training_results(results, oname):
     """
     Plots the loss and accuracy for the training and testing data:
@@ -195,7 +200,7 @@ def visualize_training_results(results, oname):
     :param oname: name heading for the saved files
     """
     history = results.history
-    plt.figure(figsize=(8,4))
+    plt.figure(figsize=(8, 4))
     plt.plot(history['val_loss'])
     plt.plot(history['loss'])
     plt.legend(['val_loss', 'loss'])
@@ -203,7 +208,8 @@ def visualize_training_results(results, oname):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.savefig(oname + '_train.png', dpi=300)
-    
+
+
 def exe_load(args, df):
     """ 
     When the user chose to use a pretrained model:
@@ -215,7 +221,7 @@ def exe_load(args, df):
     n_features = df.shape[1]
     n_per_in, n_per_out, _ = param
     predict(df, n_per_in, n_per_out, n_features, model, close_scaler, args.oname)
-    
+
 
 def exe_new(args, df):
     """ 
@@ -240,6 +246,3 @@ def exe_new(args, df):
     predict(df, nn.n_per_in, nn.n_per_out, nn.n_features, nn.model, nn.close_scalar, args.oname)
     if args.save_model == 1:
         nn.model.save(args.oname)
-
-    
-    
